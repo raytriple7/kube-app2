@@ -1,10 +1,13 @@
-FROM openjdk:8 AS BUILD_IMAGE
-RUN apt update && apt install maven -y
-RUN git clone -b vp-docker https://github.com/imravisual/vprofile-repo.git
-RUN cd vprofile-repo && mvn install
-
-FROM tomcat:8-jre11
-RUN rm-rf /usr/local/tomcat/webapps/*
-COPY --from=BUILD_IMAGE vprofile-repo/target/vprofile-v2.war /usr/local/tomcat/webapps/ROOT.war
-EXPOSE 8080
-CMD ["catalina.sh", "run"]
+FROM alpine/git as repo
+MAINTAINER acadalearning@gmail.com
+WORKDIR /app
+RUN git clone https://github.com/acadalearning/web-app.git
+#Maven
+FROM maven:3.5-jdk-8-alpine as build
+WORKDIR /app
+COPY --from=repo /app/web-app  /app
+RUN mvn package
+#Tomcat
+FROM tomcat:8.0.20-jre8 
+#COPY  /app/target/*war /usr/local/tomcat/webapps/maven-web-app.war
+COPY --from=build /app/target/*.war /usr/local/tomcat/webapps/
