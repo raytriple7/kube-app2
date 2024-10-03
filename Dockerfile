@@ -1,13 +1,10 @@
-FROM ubuntu:latest
-LABEL "Author"="Raymond Nwanmuo"
-LABEL "Project"="moso"
-ENV DEBIAN_FRONTEND=noninteractive
+FROM openjdk:8 AS BUILD_IMAGE
+RUN apt update && apt install maven -y
+RUN git clone -b vp-docker https://github.com/imravisual/vprofile-repo.git
+RUN cd vprofile-repo && mvn install
 
-RUN apt-get update && \
-    apt-get install -y git apache2 && \
-    apt-get clean
-
-CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
-EXPOSE 80
-WORKDIR /var/www/html
-COPY moso.tar.gz /var/www/html
+FROM tomcat:8-jre11
+RUN rm-rf /usr/local/tomcat/webapps/*
+COPY --from=BUILD_IMAGE vprofile-repo/target/vprofile-v2.war /usr/local/tomcat/webapps/ROOT.war
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
